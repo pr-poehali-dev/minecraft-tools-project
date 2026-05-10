@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
 
 const NAV_LINKS = ["Главная", "Инструменты", "Гайды", "Контакты"];
@@ -351,63 +351,7 @@ function CalcEnchant() {
   );
 }
 
-// ─── End Portal Calculator ─────────────────────────────────────────────────────
-function CalcEndPortal() {
-  const [ex, setEx] = useState("");
-  const [ez, setEz] = useState("");
 
-  const x = parseFloat(ex);
-  const z = parseFloat(ez);
-  const hasCoords = !isNaN(x) && !isNaN(z) && ex !== "" && ez !== "";
-  const dist = hasCoords ? Math.round(Math.sqrt(x * x + z * z)) : null;
-  const angleDeg = hasCoords ? Math.round(Math.atan2(z, x) * 180 / Math.PI) : null;
-
-  const dirLabel = (deg: number) => {
-    const dirs = ["Восток", "Северо-восток", "Север", "Северо-запад", "Запад", "Юго-запад", "Юг", "Юго-восток"];
-    return dirs[Math.round(((deg % 360) + 360) % 360 / 45) % 8];
-  };
-
-  return (
-    <div className="space-y-4">
-      <p className="text-xs text-[#f0e8d8]/40 leading-relaxed">
-        Брось глаз эндера и запомни свои координаты X и Z. Введи их ниже — калькулятор покажет расстояние до крепости.
-      </p>
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="block text-xs text-[#f0e8d8]/50 uppercase tracking-wider mb-1.5">Моя X</label>
-          <input type="number" value={ex} onChange={e => setEx(e.target.value)}
-            placeholder="0" className="w-full bg-[#0f0d0a] border border-[#f59e0b]/20 rounded px-3 py-2 text-[#f0e8d8] text-sm focus:outline-none focus:border-[#f59e0b]/60 transition-colors" />
-        </div>
-        <div>
-          <label className="block text-xs text-[#f0e8d8]/50 uppercase tracking-wider mb-1.5">Моя Z</label>
-          <input type="number" value={ez} onChange={e => setEz(e.target.value)}
-            placeholder="0" className="w-full bg-[#0f0d0a] border border-[#f59e0b]/20 rounded px-3 py-2 text-[#f0e8d8] text-sm focus:outline-none focus:border-[#f59e0b]/60 transition-colors" />
-        </div>
-      </div>
-      {hasCoords && dist !== null && angleDeg !== null && (
-        <div className="space-y-2">
-          <div className="grid grid-cols-3 gap-2">
-            <div className="bg-[#0f0d0a] border border-[#f59e0b]/10 rounded p-3">
-              <p className="text-[10px] text-[#f0e8d8]/40 uppercase tracking-wider mb-1">Расстояние</p>
-              <p className="text-lg font-bold text-[#f59e0b]">{dist} <span className="text-xs font-normal text-[#f0e8d8]/40">бл.</span></p>
-            </div>
-            <div className="bg-[#0f0d0a] border border-[#f59e0b]/10 rounded p-3">
-              <p className="text-[10px] text-[#f0e8d8]/40 uppercase tracking-wider mb-1">Угол</p>
-              <p className="text-lg font-bold text-[#f59e0b]">{angleDeg}°</p>
-            </div>
-            <div className="bg-[#0f0d0a] border border-[#f59e0b]/10 rounded p-3">
-              <p className="text-[10px] text-[#f0e8d8]/40 uppercase tracking-wider mb-1">Сторона</p>
-              <p className="text-sm font-bold text-[#f59e0b]">{dirLabel(angleDeg)}</p>
-            </div>
-          </div>
-          <div className="bg-[#1a1510] border border-[#f59e0b]/20 rounded p-3 text-xs text-[#f0e8d8]/50 leading-relaxed">
-            Иди на <span className="text-[#f59e0b]">{dirLabel(angleDeg)}</span> ~<span className="text-[#f59e0b]">{dist}</span> блоков. Бросай глаза каждые 50–100 блоков для уточнения.
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ─── Nether / Overworld Calculator ────────────────────────────────────────────
 function CalcNether() {
@@ -478,31 +422,59 @@ function CalcNether() {
   );
 }
 
-// ─── Heaven Portal Calculator ─────────────────────────────────────────────────
-function CalcHeaven() {
+// ─── End Portal (Stronghold) Finder ───────────────────────────────────────────
+// Крепости в Java Edition генерируются кольцами:
+// Кольцо 1: 8 крепостей, 1280–2816 блоков от центра
+// Кольцо 2: 24 крепости, 4352–5888 блоков
+// Кольцо 3: 40 крепостей, 7424–8960 блоков
+// Алгоритм поиска ближайшей — через Chunkbase API недоступен на клиенте,
+// поэтому открываем Chunkbase с seed и показываем ссылку + объясняем.
+// Для Bedrock seed'ы отличаются от Java.
+
+function CalcEndPortal() {
   const [version, setVersion] = useState<"java" | "bedrock">("java");
   const [seed, setSeed] = useState("");
-  const [wx, setWx] = useState("");
-  const [wz, setWz] = useState("");
+  const [px, setPx] = useState("");
+  const [pz, setPz] = useState("");
 
   const hasSeed = seed.trim() !== "";
-  const hasCoords = wx.trim() !== "" && wz.trim() !== "";
+  const hasPos  = px.trim() !== "" && pz.trim() !== "";
 
-  const chunkbaseUrl = hasSeed
-    ? `https://www.chunkbase.com/apps/nether-fortress-finder#${encodeURIComponent(seed)}`
-    : "https://www.chunkbase.com/apps/nether-fortress-finder";
+  // URL Chunkbase stronghold finder с seed и (опционально) позицией игрока
+  const chunkbaseUrl = () => {
+    const base = version === "java"
+      ? "https://www.chunkbase.com/apps/stronghold-finder"
+      : "https://www.chunkbase.com/apps/stronghold-finder";
+    const params: string[] = [];
+    if (hasSeed) params.push(`seed=${encodeURIComponent(seed)}`);
+    if (hasPos)  params.push(`x=${px}&z=${pz}`);
+    if (version === "bedrock") params.push("platform=bedrock");
+    return params.length ? `${base}#${params.join("&")}` : base;
+  };
 
-  // В Java Edition координаты Рая = координаты обычного мира (без деления)
-  // Рай (The End) - игровая зона, портал всегда на 0,0 в End
-  // Крепости (Stronghold) в обычном мире → через них попадают в Край
-  // "Рай" в контексте Minecraft часто означает Nether — уточняем: это Nether Fortress finder
-  const nfX = hasCoords ? Math.round(parseFloat(wx) / 8) : null;
-  const nfZ = hasCoords ? Math.round(parseFloat(wz) / 8) : null;
+  // Ближайшее кольцо крепостей (приближение): определяем расстояние до центра колец
+  const rings = [
+    { ring: 1, count: 8,  minR: 1280,  maxR: 2816  },
+    { ring: 2, count: 24, minR: 4352,  maxR: 5888  },
+    { ring: 3, count: 40, minR: 7424,  maxR: 8960  },
+  ];
+
+  const playerDist = hasPos
+    ? Math.round(Math.sqrt(parseFloat(px) ** 2 + parseFloat(pz) ** 2))
+    : null;
+
+  const nearestRing = playerDist !== null
+    ? rings.reduce((best, r) => {
+        const midR = (r.minR + r.maxR) / 2;
+        const bestMid = (best.minR + best.maxR) / 2;
+        return Math.abs(midR - playerDist) < Math.abs(bestMid - playerDist) ? r : best;
+      })
+    : null;
 
   return (
     <div className="space-y-4">
       <p className="text-xs text-[#f0e8d8]/40 leading-relaxed">
-        Введи ключ мира (seed) чтобы открыть карту крепостей Незера на Chunkbase, или конвертируй координаты обычного мира в координаты Незера.
+        Портал в Энд находится в крепости (Stronghold). Введи seed мира — откроем точную карту всех крепостей на Chunkbase.
       </p>
 
       {/* Version */}
@@ -516,49 +488,72 @@ function CalcHeaven() {
             </button>
           ))}
         </div>
+        <p className="text-[10px] text-[#f0e8d8]/25 mt-1">⚠️ Seed'ы Java и Bedrock несовместимы — выбери правильную версию</p>
       </div>
 
       {/* Seed */}
       <div>
-        <label className="block text-xs text-[#f0e8d8]/50 uppercase tracking-wider mb-1.5">Ключ мира (Seed)</label>
+        <label className="block text-xs text-[#f0e8d8]/50 uppercase tracking-wider mb-1.5">
+          Ключ мира (Seed)
+          <span className="ml-2 text-[#f0e8d8]/25 normal-case font-normal">— /seed в чате игры</span>
+        </label>
         <input value={seed} onChange={e => setSeed(e.target.value)}
-          placeholder="Введи seed мира..." className="w-full bg-[#0f0d0a] border border-[#f59e0b]/20 rounded px-3 py-2 text-[#f0e8d8] text-sm focus:outline-none focus:border-[#f59e0b]/60 transition-colors" />
-        {hasSeed && (
-          <a href={chunkbaseUrl} target="_blank" rel="noopener noreferrer"
-            className="mt-2 flex items-center gap-2 w-full py-2 px-3 bg-[#f59e0b]/10 border border-[#f59e0b]/30 rounded text-xs text-[#f59e0b] hover:bg-[#f59e0b]/20 transition-colors">
-            <Icon name="ExternalLink" size={12} />
-            Открыть карту Незера на Chunkbase ({version === "java" ? "Java" : "Bedrock"})
-          </a>
-        )}
+          placeholder="Например: -1234567890" className="w-full bg-[#0f0d0a] border border-[#f59e0b]/20 rounded px-3 py-2 text-[#f0e8d8] text-sm focus:outline-none focus:border-[#f59e0b]/60 transition-colors" />
       </div>
 
-      {/* Coords */}
+      {/* Player position (optional) */}
       <div>
-        <label className="block text-xs text-[#f0e8d8]/50 uppercase tracking-wider mb-1.5">Мои координаты в обычном мире</label>
+        <label className="block text-xs text-[#f0e8d8]/50 uppercase tracking-wider mb-1.5">
+          Моя позиция <span className="text-[#f0e8d8]/25 normal-case font-normal">— необязательно, для расчёта ближайшей</span>
+        </label>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-[10px] text-[#f0e8d8]/30 mb-1">X</label>
-            <input type="number" value={wx} onChange={e => setWx(e.target.value)}
+            <input type="number" value={px} onChange={e => setPx(e.target.value)}
               placeholder="0" className="w-full bg-[#0f0d0a] border border-[#f59e0b]/20 rounded px-3 py-2 text-[#f0e8d8] text-sm focus:outline-none focus:border-[#f59e0b]/60 transition-colors" />
           </div>
           <div>
             <label className="block text-[10px] text-[#f0e8d8]/30 mb-1">Z</label>
-            <input type="number" value={wz} onChange={e => setWz(e.target.value)}
+            <input type="number" value={pz} onChange={e => setPz(e.target.value)}
               placeholder="0" className="w-full bg-[#0f0d0a] border border-[#f59e0b]/20 rounded px-3 py-2 text-[#f0e8d8] text-sm focus:outline-none focus:border-[#f59e0b]/60 transition-colors" />
           </div>
         </div>
-        {hasCoords && nfX !== null && nfZ !== null && (
-          <div className="mt-2 grid grid-cols-2 gap-2">
-            <div className="bg-[#0f0d0a] border border-[#f59e0b]/10 rounded p-3">
-              <p className="text-[10px] text-[#f0e8d8]/40 uppercase tracking-wider mb-1">Незер X</p>
-              <p className="text-lg font-bold text-[#f59e0b]">{nfX}</p>
-            </div>
-            <div className="bg-[#0f0d0a] border border-[#f59e0b]/10 rounded p-3">
-              <p className="text-[10px] text-[#f0e8d8]/40 uppercase tracking-wider mb-1">Незер Z</p>
-              <p className="text-lg font-bold text-[#f59e0b]">{nfZ}</p>
-            </div>
+      </div>
+
+      {/* Nearest ring info */}
+      {playerDist !== null && nearestRing && (
+        <div className="bg-[#0f0d0a] border border-[#f59e0b]/10 rounded p-3 space-y-1">
+          <p className="text-[10px] text-[#f0e8d8]/40 uppercase tracking-wider">Ближайшее кольцо крепостей</p>
+          <p className="text-sm text-[#f0e8d8]/70">
+            <span className="text-[#f59e0b] font-bold">Кольцо {nearestRing.ring}</span> — {nearestRing.count} крепостей, {nearestRing.minR}–{nearestRing.maxR} блоков от центра
+          </p>
+          <p className="text-xs text-[#f0e8d8]/40">Ты сейчас в {playerDist} блоках от X:0 Z:0</p>
+        </div>
+      )}
+
+      {/* Chunkbase link */}
+      {hasSeed && (
+        <a href={chunkbaseUrl()} target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-3 w-full py-3 px-4 bg-[#f59e0b]/10 border border-[#f59e0b]/30 rounded text-sm text-[#f59e0b] hover:bg-[#f59e0b]/20 transition-colors">
+          <Icon name="ExternalLink" size={16} className="flex-shrink-0" />
+          <div>
+            <p className="font-semibold">Открыть карту крепостей на Chunkbase</p>
+            <p className="text-xs text-[#f59e0b]/60">{version === "java" ? "Java Edition" : "Bedrock Edition"} · seed: {seed}</p>
           </div>
-        )}
+        </a>
+      )}
+
+      {/* Info rings table */}
+      <div className="bg-[#0f0d0a] border border-[#f59e0b]/10 rounded p-3">
+        <p className="text-[10px] text-[#f0e8d8]/40 uppercase tracking-wider mb-2">Кольца крепостей в Java Edition</p>
+        <div className="space-y-1">
+          {rings.map(r => (
+            <div key={r.ring} className={`flex items-center justify-between text-xs py-1 px-2 rounded ${nearestRing?.ring === r.ring && playerDist !== null ? "bg-[#f59e0b]/10 text-[#f59e0b]" : "text-[#f0e8d8]/40"}`}>
+              <span>Кольцо {r.ring} ({r.count} шт.)</span>
+              <span>{r.minR}–{r.maxR} блоков</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -566,11 +561,10 @@ function CalcHeaven() {
 
 // ─── Tools list ────────────────────────────────────────────────────────────────
 const TOOLS_DATA = [
-  { id: "xp",      icon: "Star",       name: "Калькулятор XP",              tag: "Опыт",  desc: "Рассчитай сколько XP нужно для нужного уровня",              component: <CalcXP /> },
-  { id: "ench",    icon: "Sparkles",   name: "Зачарование предмета",        tag: "Стол",  desc: "Подбери зачарования и узнай стоимость в уровнях",            component: <CalcEnchant /> },
-  { id: "end",     icon: "Navigation", name: "Координаты портала в Край",   tag: "Край",  desc: "Найди крепость по своим координатам и глазу эндера",         component: <CalcEndPortal /> },
-  { id: "nether",  icon: "Flame",      name: "Ад ↔ Обычный мир",           tag: "Незер", desc: "Конвертируй координаты между Незером и обычным миром",        component: <CalcNether /> },
-  { id: "heaven",  icon: "Compass",    name: "Координаты в Незере (Seed)",  tag: "Незер", desc: "Найди крепости Незера по ключу мира через Chunkbase",         component: <CalcHeaven /> },
+  { id: "xp",     icon: "Star",       name: "Калькулятор XP",            tag: "Опыт",  desc: "Рассчитай сколько XP нужно для нужного уровня",           component: <CalcXP /> },
+  { id: "ench",   icon: "Sparkles",   name: "Зачарование предмета",      tag: "Стол",  desc: "Подбери зачарования и узнай стоимость в уровнях",         component: <CalcEnchant /> },
+  { id: "end",    icon: "Navigation", name: "Координаты портала в Энд",  tag: "Энд",   desc: "Найди крепость с порталом в Энд по seed через Chunkbase",  component: <CalcEndPortal /> },
+  { id: "nether", icon: "Flame",      name: "Ад ↔ Обычный мир",         tag: "Незер", desc: "Конвертируй координаты между Незером и обычным миром",     component: <CalcNether /> },
 ];
 
 // ─── Guides ───────────────────────────────────────────────────────────────────
@@ -614,15 +608,21 @@ const GUIDES = [
   },
   {
     icon: "🌀",
-    title: "Поиск портала в Край: как работает расчёт",
-    body: `Портал в Край находится в крепости под землёй. Чтобы найти её:
+    title: "Как найти портал в Энд (The End)",
+    body: `Портал в Энд находится в крепости (Stronghold) под землёй. Инструмент «Координаты портала в Энд» поможет найти её точное расположение по seed мира.
 
-1. Возьми глаза эндера (крафт: жемчуг эндера + зелье огня)
-2. Брось глаз — он полетит в сторону крепости
-3. Запомни свои X и Z в момент броска
-4. Введи координаты в калькулятор
+Как пользоваться:
+1. Узнай seed: введи /seed в чате (нужны права оператора) или открой настройки мира
+2. Выбери версию — Java и Bedrock Edition имеют разные seed'ы!
+3. Введи seed → появится кнопка открытия карты крепостей на Chunkbase
+4. На карте Chunkbase ближайшая к тебе крепость будет помечена — запомни её координаты
 
-Как работает расчёт: калькулятор вычисляет вектор и расстояние от тебя до ближайшей зоны спавна крепостей. Бросай глаза каждые 100 блоков — чем ближе, тем точнее.`,
+Кольца крепостей в Java Edition:
+• Кольцо 1: 8 крепостей, 1280–2816 блоков от центра мира
+• Кольцо 2: 24 крепости, 4352–5888 блоков
+• Кольцо 3: 40 крепостей, 7424–8960 блоков
+
+Если нет seed'а — используй глаза эндера: брось их и иди в сторону полёта.`,
   },
   {
     icon: "🔥",
@@ -635,19 +635,7 @@ const GUIDES = [
 
 Погрешность: из-за округления результат может отличаться до ±4 блоков в обычном мире (или ±0.5 в Незере). Y-координата НЕ пересчитывается — строй порталы на высоте Y 60–90 в Незере.`,
   },
-  {
-    icon: "🧭",
-    title: "Поиск крепостей Незера по Seed (Chunkbase)",
-    body: `Инструмент «Координаты в Незере» позволяет найти крепости Незера по ключу мира.
 
-Как использовать:
-1. Узнай seed мира: введи /seed в чате (если есть права) или найди в настройках мира
-2. Выбери версию игры (Java или Bedrock — seed'ы у них разные!)
-3. Введи seed в поле — появится кнопка открытия карты на Chunkbase
-4. На карте Chunkbase будут отмечены все крепости Незера
-
-Также можно конвертировать свои текущие координаты в координаты Незера прямо в этом инструменте.`,
-  },
 ];
 
 // ─── Main page ─────────────────────────────────────────────────────────────────
@@ -657,9 +645,7 @@ export default function Index() {
   const [openTool, setOpenTool] = useState<string | null>(null);
   const [openGuide, setOpenGuide] = useState<number | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
-  const [scrollTab, setScrollTab] = useState<string | null>(null);
-  const scrollTabTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const toolsOrder = TOOLS_DATA.map(t => t.id);
+
 
   const sectionIds: Record<string, string> = {
     Главная: "hero", Инструменты: "tools", Гайды: "guides", Контакты: "contacts",
@@ -688,34 +674,8 @@ export default function Index() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Скролл колесом — переключение вкладок инструментов
-  const handleToolsWheel = useCallback((e: React.WheelEvent) => {
-    if (!openTool) return;
-    const idx = toolsOrder.indexOf(openTool);
-    if (idx === -1) return;
-    const next = e.deltaY > 0
-      ? toolsOrder[Math.min(idx + 1, toolsOrder.length - 1)]
-      : toolsOrder[Math.max(idx - 1, 0)];
-    if (next === openTool) return;
-    e.preventDefault();
-    setOpenTool(next);
-    const tool = TOOLS_DATA.find(t => t.id === next);
-    if (tool) {
-      setScrollTab(tool.name);
-      if (scrollTabTimer.current) clearTimeout(scrollTabTimer.current);
-      scrollTabTimer.current = setTimeout(() => setScrollTab(null), 1800);
-    }
-  }, [openTool, toolsOrder]);
-
   return (
     <div className="min-h-screen bg-[#0f0d0a] text-[#f0e8d8] font-['Rubik',sans-serif]">
-
-      {/* Scroll tab indicator */}
-      {scrollTab && (
-        <div className="fixed top-20 right-4 z-50 bg-black/80 border border-[#f59e0b]/30 rounded-lg px-4 py-2 text-xs text-[#f59e0b] backdrop-blur-md pointer-events-none animate-fade-in">
-          {scrollTab}
-        </div>
-      )}
 
       {/* Scroll to top button */}
       {showScrollTop && (
@@ -795,7 +755,7 @@ export default function Index() {
       </section>
 
       {/* TOOLS */}
-      <section id="tools" className="py-24 px-6 max-w-6xl mx-auto" onWheel={handleToolsWheel}>
+      <section id="tools" className="py-24 px-6 max-w-6xl mx-auto">
         <div className="text-center mb-16">
           <p className="text-[#f59e0b] text-xs tracking-[0.4em] uppercase mb-3">Раздел</p>
           <h2 className="font-['Oswald',sans-serif] text-4xl md:text-5xl font-bold uppercase tracking-wider text-white">Инструменты</h2>
