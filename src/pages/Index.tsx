@@ -54,97 +54,152 @@ function CalcXP() {
 }
 
 // ─── Enchantment Calculator ────────────────────────────────────────────────────
-// Структура: { название: { maxLevel, incompatibleWith[], lapisCost } }
-// Стоимость уровней рассчитывается по формуле: базовый_уровень × выбранный_уровень
 type EnchantDef = { maxLevel: number; base: number; incompatible?: string[] };
 
+// Официальные названия зачарований из Minecraft Java Edition (русская локализация)
+const PROT  = ["Защита", "Огнестойкость", "Взрывозащита", "Защита от снарядов"];
+const UNB   = { "Неломкость": { maxLevel: 3, base: 4 } };
+const MEND  = { "Починка": { maxLevel: 1, base: 10 } };
+const CURSE_V = { "Проклятие несохранения": { maxLevel: 1, base: 2 } };
+const CURSE_B = { "Проклятие исчезновения": { maxLevel: 1, base: 2 } };
+const THORNS = { "Шипы": { maxLevel: 3, base: 5 } };
+
+const mkProt = (): Record<string, EnchantDef> => ({
+  "Защита":               { maxLevel: 4, base: 4, incompatible: ["Огнестойкость","Взрывозащита","Защита от снарядов"] },
+  "Огнестойкость":        { maxLevel: 4, base: 4, incompatible: ["Защита","Взрывозащита","Защита от снарядов"] },
+  "Взрывозащита":         { maxLevel: 4, base: 4, incompatible: ["Защита","Огнестойкость","Защита от снарядов"] },
+  "Защита от снарядов":   { maxLevel: 4, base: 4, incompatible: ["Защита","Огнестойкость","Взрывозащита"] },
+});
+
 const ENCHANTS: Record<string, Record<string, EnchantDef>> = {
-  Меч: {
-    "Острота":         { maxLevel: 5, base: 5, incompatible: ["Иссушение", "Урон по нежити"] },
-    "Иссушение":       { maxLevel: 5, base: 5, incompatible: ["Острота", "Урон по нежити"] },
-    "Урон по нежити":  { maxLevel: 5, base: 5, incompatible: ["Острота", "Иссушение"] },
-    "Отбрасывание":    { maxLevel: 2, base: 4 },
-    "Огненный аспект": { maxLevel: 2, base: 6 },
-    "Добыча":          { maxLevel: 3, base: 6 },
-    "Заметание":       { maxLevel: 3, base: 5 },
-    "Неломкость":      { maxLevel: 3, base: 4 },
-    "Починка":         { maxLevel: 1, base: 10 },
+  // ── ОРУЖИЕ ──────────────────────────────────────────────────────────────────
+  "Меч": {
+    "Острота":              { maxLevel: 5, base: 5, incompatible: ["Иссушение","Урон по нежити"] },
+    "Иссушение":            { maxLevel: 5, base: 5, incompatible: ["Острота","Урон по нежити"] },
+    "Урон по нежити":       { maxLevel: 5, base: 5, incompatible: ["Острота","Иссушение"] },
+    "Отбрасывание":         { maxLevel: 2, base: 4 },
+    "Огненный аспект":      { maxLevel: 2, base: 6 },
+    "Добыча":               { maxLevel: 3, base: 6 },
+    "Заметание":            { maxLevel: 3, base: 5 },
+    ...UNB, ...MEND, ...CURSE_V,
+  },
+  "Топор": {
+    "Острота":              { maxLevel: 5, base: 5, incompatible: ["Иссушение","Урон по нежити"] },
+    "Иссушение":            { maxLevel: 5, base: 5, incompatible: ["Острота","Урон по нежити"] },
+    "Урон по нежити":       { maxLevel: 5, base: 5, incompatible: ["Острота","Иссушение"] },
+    "Эффективность":        { maxLevel: 5, base: 4 },
+    "Удача":                { maxLevel: 3, base: 7, incompatible: ["Шёлковое касание"] },
+    "Шёлковое касание":     { maxLevel: 1, base: 8, incompatible: ["Удача"] },
+    ...THORNS, ...UNB, ...MEND, ...CURSE_V,
+  },
+  "Трезубец": {
+    "Преданность":          { maxLevel: 5, base: 5, incompatible: ["Каналирование","Разрыв"] },
+    "Разрыв":               { maxLevel: 3, base: 5, incompatible: ["Преданность","Каналирование"] },
+    "Каналирование":        { maxLevel: 1, base: 8, incompatible: ["Преданность","Разрыв"] },
+    "Водный бой":           { maxLevel: 3, base: 5 },
+    "Импульс":              { maxLevel: 1, base: 7 },
+    ...UNB, ...MEND, ...CURSE_V,
+  },
+  // ── ИНСТРУМЕНТЫ ─────────────────────────────────────────────────────────────
+  "Кирка": {
+    "Эффективность":        { maxLevel: 5, base: 4 },
+    "Удача":                { maxLevel: 3, base: 7, incompatible: ["Шёлковое касание"] },
+    "Шёлковое касание":     { maxLevel: 1, base: 8, incompatible: ["Удача"] },
+    ...UNB, ...MEND, ...CURSE_V,
+  },
+  "Лопата": {
+    "Эффективность":        { maxLevel: 5, base: 4 },
+    "Удача":                { maxLevel: 3, base: 7, incompatible: ["Шёлковое касание"] },
+    "Шёлковое касание":     { maxLevel: 1, base: 8, incompatible: ["Удача"] },
+    ...UNB, ...MEND, ...CURSE_V,
+  },
+  "Мотыга": {
+    "Эффективность":        { maxLevel: 5, base: 4 },
+    "Удача":                { maxLevel: 3, base: 7, incompatible: ["Шёлковое касание"] },
+    "Шёлковое касание":     { maxLevel: 1, base: 8, incompatible: ["Удача"] },
+    ...UNB, ...MEND, ...CURSE_V,
+  },
+  "Ножницы": {
+    "Эффективность":        { maxLevel: 5, base: 4 },
+    "Удача":                { maxLevel: 3, base: 7, incompatible: ["Шёлковое касание"] },
+    "Шёлковое касание":     { maxLevel: 1, base: 8, incompatible: ["Удача"] },
+    ...UNB, ...MEND, ...CURSE_V,
+  },
+  "Удочка": {
+    "Удача моря":           { maxLevel: 3, base: 6, incompatible: ["Наживка"] },
+    "Наживка":              { maxLevel: 3, base: 6, incompatible: ["Удача моря"] },
+    ...UNB, ...MEND, ...CURSE_V,
+  },
+  // ── ДАЛЬНОБОЙНОЕ ────────────────────────────────────────────────────────────
+  "Лук": {
+    "Сила":                 { maxLevel: 5, base: 4 },
+    "Отдача":               { maxLevel: 2, base: 5 },
+    "Пламя":                { maxLevel: 1, base: 6 },
+    "Бесконечность":        { maxLevel: 1, base: 10, incompatible: ["Починка"] },
+    ...UNB,
+    "Починка":              { maxLevel: 1, base: 10, incompatible: ["Бесконечность"] },
+    ...CURSE_V,
+  },
+  "Арбалет": {
+    "Быстрый заряд":        { maxLevel: 3, base: 5 },
+    "Многозарядность":      { maxLevel: 1, base: 8, incompatible: ["Пронзание"] },
+    "Пронзание":            { maxLevel: 4, base: 5, incompatible: ["Многозарядность"] },
+    ...UNB, ...MEND, ...CURSE_V,
+  },
+  // ── БРОНЯ ───────────────────────────────────────────────────────────────────
+  "Шлем": {
+    ...mkProt(),
+    "Дыхание":              { maxLevel: 3, base: 6 },
+    "Родство с водой":      { maxLevel: 1, base: 6 },
+    ...THORNS, ...UNB, ...MEND, ...CURSE_V, ...CURSE_B,
+  },
+  "Нагрудник": {
+    ...mkProt(),
+    ...THORNS, ...UNB, ...MEND, ...CURSE_V, ...CURSE_B,
+  },
+  "Поножи": {
+    ...mkProt(),
+    "Быстрые ноги":         { maxLevel: 3, base: 4 },
+    ...THORNS, ...UNB, ...MEND, ...CURSE_V, ...CURSE_B,
+  },
+  "Ботинки": {
+    ...mkProt(),
+    "Хождение по воде":     { maxLevel: 3, base: 5 },
+    "Мягкое падение":       { maxLevel: 4, base: 4 },
+    "Ледяная поступь":      { maxLevel: 2, base: 4 },
+    "Скороход":             { maxLevel: 3, base: 4 },
+    ...THORNS, ...UNB, ...MEND, ...CURSE_V, ...CURSE_B,
+  },
+  // ── ДРУГОЕ ──────────────────────────────────────────────────────────────────
+  "Эйтра": {
+    ...UNB, ...MEND,
+    "Проклятие несохранения": { maxLevel: 1, base: 2 },
+    "Проклятие исчезновения": { maxLevel: 1, base: 2 },
+  },
+  "Щит": {
+    ...UNB, ...MEND,
     "Проклятие несохранения": { maxLevel: 1, base: 2 },
   },
-  Кирка: {
-    "Эффективность":   { maxLevel: 5, base: 4 },
-    "Удача":           { maxLevel: 3, base: 7, incompatible: ["Шёлковое касание"] },
-    "Шёлковое касание":{ maxLevel: 1, base: 8, incompatible: ["Удача"] },
-    "Неломкость":      { maxLevel: 3, base: 4 },
-    "Починка":         { maxLevel: 1, base: 10 },
-    "Проклятие несохранения": { maxLevel: 1, base: 2 },
-  },
-  Лук: {
-    "Сила":            { maxLevel: 5, base: 4 },
-    "Отдача":          { maxLevel: 2, base: 5 },
-    "Пламя":           { maxLevel: 1, base: 6 },
-    "Бесконечность":   { maxLevel: 1, base: 10, incompatible: ["Починка"] },
-    "Неломкость":      { maxLevel: 3, base: 4 },
-    "Починка":         { maxLevel: 1, base: 10, incompatible: ["Бесконечность"] },
-    "Проклятие несохранения": { maxLevel: 1, base: 2 },
-  },
-  Шлем: {
-    "Защита":          { maxLevel: 4, base: 4, incompatible: ["Огнестойкость", "Защита от снарядов", "Взрывозащита"] },
-    "Огнестойкость":   { maxLevel: 4, base: 4, incompatible: ["Защита", "Защита от снарядов", "Взрывозащита"] },
-    "Защита от снарядов": { maxLevel: 4, base: 4, incompatible: ["Защита", "Огнестойкость", "Взрывозащита"] },
-    "Взрывозащита":    { maxLevel: 4, base: 4, incompatible: ["Защита", "Огнестойкость", "Защита от снарядов"] },
-    "Дыхание":         { maxLevel: 3, base: 6 },
-    "Водное сродство": { maxLevel: 1, base: 6 },
-    "Шипы":            { maxLevel: 3, base: 5 },
-    "Неломкость":      { maxLevel: 3, base: 4 },
-    "Починка":         { maxLevel: 1, base: 10 },
-    "Проклятие несохранения":   { maxLevel: 1, base: 2 },
-    "Проклятие исчезновения":   { maxLevel: 1, base: 2 },
-  },
-  Нагрудник: {
-    "Защита":          { maxLevel: 4, base: 4, incompatible: ["Огнестойкость", "Защита от снарядов", "Взрывозащита"] },
-    "Огнестойкость":   { maxLevel: 4, base: 4, incompatible: ["Защита", "Защита от снарядов", "Взрывозащита"] },
-    "Защита от снарядов": { maxLevel: 4, base: 4, incompatible: ["Защита", "Огнестойкость", "Взрывозащита"] },
-    "Взрывозащита":    { maxLevel: 4, base: 4, incompatible: ["Защита", "Огнестойкость", "Защита от снарядов"] },
-    "Шипы":            { maxLevel: 3, base: 5 },
-    "Неломкость":      { maxLevel: 3, base: 4 },
-    "Починка":         { maxLevel: 1, base: 10 },
-    "Проклятие несохранения":   { maxLevel: 1, base: 2 },
-    "Проклятие исчезновения":   { maxLevel: 1, base: 2 },
-  },
-  Поножи: {
-    "Защита":          { maxLevel: 4, base: 4, incompatible: ["Огнестойкость", "Защита от снарядов", "Взрывозащита"] },
-    "Огнестойкость":   { maxLevel: 4, base: 4, incompatible: ["Защита", "Защита от снарядов", "Взрывозащита"] },
-    "Защита от снарядов": { maxLevel: 4, base: 4, incompatible: ["Защита", "Огнестойкость", "Взрывозащита"] },
-    "Взрывозащита":    { maxLevel: 4, base: 4, incompatible: ["Защита", "Огнестойкость", "Защита от снарядов"] },
-    "Шипы":            { maxLevel: 3, base: 5 },
-    "Быстрые ноги":    { maxLevel: 3, base: 4 },
-    "Неломкость":      { maxLevel: 3, base: 4 },
-    "Починка":         { maxLevel: 1, base: 10 },
-    "Проклятие несохранения":   { maxLevel: 1, base: 2 },
-    "Проклятие исчезновения":   { maxLevel: 1, base: 2 },
-  },
-  Ботинки: {
-    "Защита":          { maxLevel: 4, base: 4, incompatible: ["Огнестойкость", "Защита от снарядов", "Взрывозащита"] },
-    "Огнестойкость":   { maxLevel: 4, base: 4, incompatible: ["Защита", "Защита от снарядов", "Взрывозащита"] },
-    "Защита от снарядов": { maxLevel: 4, base: 4, incompatible: ["Защита", "Огнестойкость", "Взрывозащита"] },
-    "Взрывозащита":    { maxLevel: 4, base: 4, incompatible: ["Защита", "Огнестойкость", "Защита от снарядов"] },
-    "Шипы":            { maxLevel: 3, base: 5 },
-    "Хождение по воде":{ maxLevel: 3, base: 6 },
-    "Мягкое падение":  { maxLevel: 4, base: 4 },
-    "Ледяная поступь": { maxLevel: 2, base: 4 },
-    "Неломкость":      { maxLevel: 3, base: 4 },
-    "Починка":         { maxLevel: 1, base: 10 },
-    "Проклятие несохранения":   { maxLevel: 1, base: 2 },
-    "Проклятие исчезновения":   { maxLevel: 1, base: 2 },
-  },
+};
+
+// Группировка предметов для удобного UI
+const ITEM_GROUPS: { label: string; items: string[] }[] = [
+  { label: "Оружие",       items: ["Меч", "Топор", "Трезубец"] },
+  { label: "Инструменты",  items: ["Кирка", "Лопата", "Мотыга", "Ножницы", "Удочка"] },
+  { label: "Дальнобой",    items: ["Лук", "Арбалет"] },
+  { label: "Броня",        items: ["Шлем", "Нагрудник", "Поножи", "Ботинки"] },
+  { label: "Другое",       items: ["Эйтра", "Щит"] },
+];
+
+const ITEM_ICONS: Record<string, string> = {
+  Меч: "⚔️", Топор: "🪓", Трезубец: "🔱",
+  Кирка: "⛏️", Лопата: "🪣", Мотыга: "🌾", Ножницы: "✂️", Удочка: "🎣",
+  Лук: "🏹", Арбалет: "🎯",
+  Шлем: "🪖", Нагрудник: "🛡️", Поножи: "🩲", Ботинки: "👟",
+  Эйтра: "🪂", Щит: "🔰",
 };
 
 const ROMAN = ["", "I", "II", "III", "IV", "V"];
-const ITEM_ICONS: Record<string, string> = {
-  Меч: "⚔️", Кирка: "⛏️", Лук: "🏹",
-  Шлем: "🪖", Нагрудник: "🛡️", Поножи: "🩲", Ботинки: "👟",
-};
 
 function CalcEnchant() {
   const [item, setItem] = useState("Меч");
@@ -179,57 +234,51 @@ function CalcEnchant() {
   const totalLevels = Object.entries(selected).reduce((acc, [name, lvl]) => {
     return acc + (enchants[name]?.base || 0) * lvl;
   }, 0);
-
   const totalLapis = Object.keys(selected).length * 3;
   const clampedLevels = Math.min(totalLevels, 30);
 
   return (
     <div className="space-y-4">
-      {/* Item selector */}
-      <div>
-        <label className="block text-xs text-[#f0e8d8]/50 uppercase tracking-wider mb-1.5">Предмет</label>
-        <div className="grid grid-cols-4 gap-1.5 mb-1">
-          {["Меч", "Кирка", "Лук"].map(it => (
-            <button key={it} onClick={() => switchItem(it)}
-              className={`py-1.5 text-xs rounded border transition-colors flex items-center justify-center gap-1 ${item === it ? "bg-[#f59e0b] text-black border-[#f59e0b] font-bold" : "border-[#f59e0b]/20 text-[#f0e8d8]/60 hover:border-[#f59e0b]/50"}`}>
-              <span>{ITEM_ICONS[it]}</span> {it}
-            </button>
-          ))}
-          <div />
-        </div>
-        <div className="grid grid-cols-4 gap-1.5">
-          {["Шлем", "Нагрудник", "Поножи", "Ботинки"].map(it => (
-            <button key={it} onClick={() => switchItem(it)}
-              className={`py-1.5 text-xs rounded border transition-colors flex items-center justify-center gap-1 ${item === it ? "bg-[#f59e0b] text-black border-[#f59e0b] font-bold" : "border-[#f59e0b]/20 text-[#f0e8d8]/60 hover:border-[#f59e0b]/50"}`}>
-              <span>{ITEM_ICONS[it]}</span> {it}
-            </button>
-          ))}
-        </div>
+      {/* Item groups */}
+      <div className="space-y-2">
+        <label className="block text-xs text-[#f0e8d8]/50 uppercase tracking-wider">Предмет</label>
+        {ITEM_GROUPS.map(group => (
+          <div key={group.label}>
+            <p className="text-[10px] text-[#f0e8d8]/30 uppercase tracking-widest mb-1">{group.label}</p>
+            <div className="flex flex-wrap gap-1.5">
+              {group.items.map(it => (
+                <button key={it} onClick={() => switchItem(it)}
+                  className={`py-1 px-2.5 text-xs rounded border transition-colors flex items-center gap-1 ${item === it ? "bg-[#f59e0b] text-black border-[#f59e0b] font-bold" : "border-[#f59e0b]/20 text-[#f0e8d8]/60 hover:border-[#f59e0b]/50"}`}>
+                  <span>{ITEM_ICONS[it]}</span>{it}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Enchantments list */}
       <div>
-        <label className="block text-xs text-[#f0e8d8]/50 uppercase tracking-wider mb-1.5">Зачарования</label>
+        <label className="block text-xs text-[#f0e8d8]/50 uppercase tracking-wider mb-1.5">
+          Зачарования <span className="text-[#f0e8d8]/30 normal-case font-normal">— {ITEM_ICONS[item]} {item}</span>
+        </label>
         <div className="space-y-1.5">
           {Object.entries(enchants).map(([name, def]) => {
             const checked = selected[name] !== undefined;
             const disabled = !checked && isDisabled(name);
             const curLevel = selected[name] ?? def.maxLevel;
             return (
-              <div key={name} className={`rounded border transition-colors ${disabled ? "border-[#f59e0b]/5 opacity-40" : checked ? "border-[#f59e0b]/50 bg-[#f59e0b]/5" : "border-[#f59e0b]/10 hover:border-[#f59e0b]/30"}`}>
+              <div key={name} className={`rounded border transition-colors ${disabled ? "border-[#f59e0b]/5 opacity-35" : checked ? "border-[#f59e0b]/50 bg-[#f59e0b]/5" : "border-[#f59e0b]/10 hover:border-[#f59e0b]/30"}`}>
                 <label className={`flex items-center gap-3 px-3 py-2 ${disabled ? "cursor-not-allowed" : "cursor-pointer"}`}>
                   <input type="checkbox" checked={checked} disabled={disabled}
                     onChange={() => toggle(name)} className="accent-[#f59e0b] flex-shrink-0" />
                   <span className={`text-sm flex-1 ${checked ? "text-[#f0e8d8]" : "text-[#f0e8d8]/70"}`}>{name}</span>
-                  {def.maxLevel > 1 ? (
-                    <span className="text-xs text-[#f59e0b]/50">макс {ROMAN[def.maxLevel]}</span>
-                  ) : (
-                    <span className="text-xs text-[#f59e0b]/50">I</span>
-                  )}
+                  <span className="text-xs text-[#f59e0b]/40 flex-shrink-0">
+                    {def.maxLevel > 1 ? `макс ${ROMAN[def.maxLevel]}` : "I"}
+                  </span>
                 </label>
-                {/* Level selector — показываем только если чара выбрана и макс уровень > 1 */}
                 {checked && def.maxLevel > 1 && (
-                  <div className="px-3 pb-2 flex items-center gap-1.5">
+                  <div className="px-3 pb-2 flex items-center gap-1.5 flex-wrap">
                     <span className="text-[10px] text-[#f0e8d8]/40 mr-1">Уровень:</span>
                     {Array.from({ length: def.maxLevel }, (_, i) => i + 1).map(lvl => (
                       <button key={lvl} onClick={() => setLevel(name, lvl)}
@@ -262,13 +311,12 @@ function CalcEnchant() {
               <p className="text-lg font-bold text-[#f59e0b]">{Object.keys(selected).length}</p>
             </div>
           </div>
-          {/* Selected summary */}
           <div className="bg-[#0f0d0a] border border-[#f59e0b]/10 rounded p-3">
             <p className="text-[10px] text-[#f0e8d8]/40 uppercase tracking-wider mb-2">Итоговый набор</p>
             <div className="flex flex-wrap gap-1.5">
               {Object.entries(selected).map(([name, lvl]) => (
                 <span key={name} className="text-xs bg-[#f59e0b]/10 border border-[#f59e0b]/20 text-[#f59e0b] px-2 py-0.5 rounded-full">
-                  {name} {ENCHANTS[item][name]?.maxLevel > 1 ? ROMAN[lvl] : ""}
+                  {name}{ENCHANTS[item][name]?.maxLevel > 1 ? ` ${ROMAN[lvl]}` : ""}
                 </span>
               ))}
             </div>
