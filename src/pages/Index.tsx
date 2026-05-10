@@ -209,18 +209,21 @@ const ITEM_ICONS: Record<string, string> = {
 
 const ROMAN = ["", "I", "II", "III", "IV", "V"];
 const LS_ITEM = "mk_ench_item";
-const LS_SEL  = "mk_ench_sel";
+const LS_ALL  = "mk_ench_all"; // Record<itemName, Record<enchantName, level>>
 
 function CalcEnchant() {
   const [item, setItem] = useState<string>(() => localStorage.getItem(LS_ITEM) || "Меч");
-  const [selected, setSelected] = useState<Record<string, number>>(() => {
-    try { return JSON.parse(localStorage.getItem(LS_SEL) || "{}"); } catch { return {}; }
+  // allSelected: чары по каждому предмету отдельно
+  const [allSelected, setAllSelected] = useState<Record<string, Record<string, number>>>(() => {
+    try { return JSON.parse(localStorage.getItem(LS_ALL) || "{}"); } catch { return {}; }
   });
 
   useEffect(() => { localStorage.setItem(LS_ITEM, item); }, [item]);
-  useEffect(() => { localStorage.setItem(LS_SEL, JSON.stringify(selected)); }, [selected]);
+  useEffect(() => { localStorage.setItem(LS_ALL, JSON.stringify(allSelected)); }, [allSelected]);
 
+  // Чары текущего предмета
   const enchants = ENCHANTS[item] || {};
+  const selected = allSelected[item] || {};
 
   const isDisabled = (name: string) => {
     const def = enchants[name];
@@ -229,28 +232,41 @@ function CalcEnchant() {
   };
 
   const toggle = (name: string) => {
-    setSelected(prev => {
-      if (prev[name] !== undefined) {
-        const next = { ...prev }; delete next[name]; return next;
+    setAllSelected(prev => {
+      const cur = prev[item] || {};
+      if (cur[name] !== undefined) {
+        const next = { ...cur }; delete next[name];
+        return { ...prev, [item]: next };
       }
       if (isDisabled(name)) return prev;
-      return { ...prev, [name]: enchants[name].maxLevel };
+      return { ...prev, [item]: { ...cur, [name]: enchants[name].maxLevel } };
     });
   };
 
   const setLevel = (name: string, level: number) => {
-    setSelected(prev => ({ ...prev, [name]: level }));
+    setAllSelected(prev => ({
+      ...prev,
+      [item]: { ...(prev[item] || {}), [name]: level },
+    }));
   };
 
-  const switchItem = (it: string) => { setItem(it); setSelected({}); };
-  const clearAll = () => setSelected({});
+  // Очистить ВСЕ предметы
+  const clearAll = () => setAllSelected({});
 
-  const totalLevels = Object.entries(selected).reduce((acc, [name, lvl]) => {
-    return acc + (enchants[name]?.base || 0) * lvl;
+  // Суммарный подсчёт по всем предметам
+  const totalEnchCount = Object.values(allSelected).reduce(
+    (acc, enc) => acc + Object.keys(enc).length, 0
+  );
+  const totalLapis = totalEnchCount * 3;
+  const totalLevels = Object.entries(allSelected).reduce((acc, [itName, encs]) => {
+    return acc + Object.entries(encs).reduce((a, [eName, lvl]) => {
+      return a + (ENCHANTS[itName]?.[eName]?.base || 0) * lvl;
+    }, 0);
   }, 0);
-  const totalLapis = Object.keys(selected).length * 3;
-  const clampedLevels = Math.min(totalLevels, 30);
-  const hasSelected = Object.keys(selected).length > 0;
+  const hasAny = totalEnchCount > 0;
+
+  // Предметы у которых выбраны чары (для итогового блока)
+  const itemsWithEnchants = Object.entries(allSelected).filter(([, enc]) => Object.keys(enc).length > 0);
 
   return (
     <div className="space-y-4">
@@ -261,12 +277,20 @@ function CalcEnchant() {
           <div key={group.label}>
             <p className="text-[10px] text-[#f0e8d8]/30 uppercase tracking-widest mb-1">{group.label}</p>
             <div className="flex flex-wrap gap-1.5">
-              {group.items.map(it => (
-                <button key={it} onClick={() => switchItem(it)}
-                  className={`py-1 px-2.5 text-xs rounded border transition-colors flex items-center gap-1 ${item === it ? "bg-[#f59e0b] text-black border-[#f59e0b] font-bold" : "border-[#f59e0b]/20 text-[#f0e8d8]/60 hover:border-[#f59e0b]/50"}`}>
-                  <span>{ITEM_ICONS[it]}</span>{it}
-                </button>
-              ))}
+              {group.items.map(it => {
+                const itEnchCount = Object.keys(allSelected[it] || {}).length;
+                return (
+                  <button key={it} onClick={() => setItem(it)}
+                    className={`py-1 px-2.5 text-xs rounded border transition-colors flex items-center gap-1 relative ${item === it ? "bg-[#f59e0b] text-black border-[#f59e0b] font-bold" : "border-[#f59e0b]/20 text-[#f0e8d8]/60 hover:border-[#f59e0b]/50"}`}>
+                    <span>{ITEM_ICONS[it]}</span>{it}
+                    {itEnchCount > 0 && (
+                      <span className={`ml-0.5 text-[10px] font-bold ${item === it ? "text-black/70" : "text-[#f59e0b]"}`}>
+                        ·{itEnchCount}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
         ))}
@@ -277,16 +301,16 @@ function CalcEnchant() {
         <label className="text-xs text-[#f0e8d8]/50 uppercase tracking-wider">
           Зачарования <span className="text-[#f0e8d8]/30 normal-case font-normal">— {ITEM_ICONS[item]} {item}</span>
         </label>
-        {hasSelected && (
+        {hasAny && (
           <button onClick={clearAll}
             className="flex items-center gap-1 text-xs text-[#f0e8d8]/40 hover:text-red-400 border border-[#f59e0b]/10 hover:border-red-400/30 rounded px-2 py-0.5 transition-colors">
             <Icon name="X" size={10} />
-            Очистить
+            Очистить всё
           </button>
         )}
       </div>
 
-      {/* Enchantments list */}
+      {/* Enchantments list for current item */}
       <div className="space-y-1.5">
         {Object.entries(enchants).map(([name, def]) => {
           const checked = selected[name] !== undefined;
@@ -318,32 +342,43 @@ function CalcEnchant() {
         })}
       </div>
 
-      {/* Results */}
-      {hasSelected && (
+      {/* Summary across all items */}
+      {hasAny && (
         <div className="space-y-2">
           <div className="grid grid-cols-3 gap-2">
             <div className="bg-[#0f0d0a] border border-[#f59e0b]/10 rounded p-3">
               <p className="text-[10px] text-[#f0e8d8]/40 uppercase tracking-wider mb-1">Уровней XP</p>
-              <p className="text-lg font-bold text-[#f59e0b]">{clampedLevels}</p>
+              <p className="text-lg font-bold text-[#f59e0b]">{totalLevels}</p>
             </div>
             <div className="bg-[#0f0d0a] border border-[#f59e0b]/10 rounded p-3">
               <p className="text-[10px] text-[#f0e8d8]/40 uppercase tracking-wider mb-1">Лазурит</p>
               <p className="text-lg font-bold text-[#f59e0b]">{totalLapis}</p>
             </div>
             <div className="bg-[#0f0d0a] border border-[#f59e0b]/10 rounded p-3">
-              <p className="text-[10px] text-[#f0e8d8]/40 uppercase tracking-wider mb-1">Чар выбрано</p>
-              <p className="text-lg font-bold text-[#f59e0b]">{Object.keys(selected).length}</p>
+              <p className="text-[10px] text-[#f0e8d8]/40 uppercase tracking-wider mb-1">Всего чар</p>
+              <p className="text-lg font-bold text-[#f59e0b]">{totalEnchCount}</p>
             </div>
           </div>
-          <div className="bg-[#0f0d0a] border border-[#f59e0b]/10 rounded p-3">
-            <p className="text-[10px] text-[#f0e8d8]/40 uppercase tracking-wider mb-2">Итоговый набор</p>
-            <div className="flex flex-wrap gap-1.5">
-              {Object.entries(selected).map(([name, lvl]) => (
-                <span key={name} className="text-xs bg-[#f59e0b]/10 border border-[#f59e0b]/20 text-[#f59e0b] px-2 py-0.5 rounded-full">
-                  {name}{ENCHANTS[item][name]?.maxLevel > 1 ? ` ${ROMAN[lvl]}` : ""}
-                </span>
-              ))}
-            </div>
+
+          {/* Per-item breakdown */}
+          <div className="bg-[#0f0d0a] border border-[#f59e0b]/10 rounded p-3 space-y-3">
+            <p className="text-[10px] text-[#f0e8d8]/40 uppercase tracking-wider">Итоговый набор по предметам</p>
+            {itemsWithEnchants.map(([itName, encs]) => (
+              <div key={itName}>
+                <p className="text-xs text-[#f0e8d8]/50 mb-1.5 flex items-center gap-1">
+                  <span>{ITEM_ICONS[itName]}</span>
+                  <span className="font-semibold text-[#f0e8d8]/70">{itName}</span>
+                  <span className="text-[#f0e8d8]/30">— {Object.keys(encs).length} чар</span>
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {Object.entries(encs).map(([eName, lvl]) => (
+                    <span key={eName} className="text-xs bg-[#f59e0b]/10 border border-[#f59e0b]/20 text-[#f59e0b] px-2 py-0.5 rounded-full">
+                      {eName}{ENCHANTS[itName]?.[eName]?.maxLevel > 1 ? ` ${ROMAN[lvl]}` : ""}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
