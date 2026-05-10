@@ -56,147 +56,149 @@ function CalcXP() {
 // ─── Enchantment Calculator ────────────────────────────────────────────────────
 type EnchantDef = { maxLevel: number; base: number; incompatible?: string[] };
 
-// Официальные названия зачарований из Minecraft Java Edition (русская локализация)
-const PROT  = ["Защита", "Огнестойкость", "Взрывозащита", "Защита от снарядов"];
-const UNB   = { "Неломкость": { maxLevel: 3, base: 4 } };
-const MEND  = { "Починка": { maxLevel: 1, base: 10 } };
-const CURSE_V = { "Проклятие несохранения": { maxLevel: 1, base: 2 } };
-const CURSE_B = { "Проклятие исчезновения": { maxLevel: 1, base: 2 } };
-const THORNS = { "Шипы": { maxLevel: 3, base: 5 } };
+const UNB  = { "Прочность":  { maxLevel: 3, base: 4 } as EnchantDef };
+const MEND = { "Починка":    { maxLevel: 1, base: 10 } as EnchantDef };
 
 const mkProt = (): Record<string, EnchantDef> => ({
-  "Защита":               { maxLevel: 4, base: 4, incompatible: ["Огнестойкость","Взрывозащита","Защита от снарядов"] },
-  "Огнестойкость":        { maxLevel: 4, base: 4, incompatible: ["Защита","Взрывозащита","Защита от снарядов"] },
-  "Взрывозащита":         { maxLevel: 4, base: 4, incompatible: ["Защита","Огнестойкость","Защита от снарядов"] },
-  "Защита от снарядов":   { maxLevel: 4, base: 4, incompatible: ["Защита","Огнестойкость","Взрывозащита"] },
+  "Защита":               { maxLevel: 4, base: 4, incompatible: ["Огнестойкость","Взрывоустойчивость","Защита от снарядов"] },
+  "Огнестойкость":        { maxLevel: 4, base: 4, incompatible: ["Защита","Взрывоустойчивость","Защита от снарядов"] },
+  "Взрывоустойчивость":   { maxLevel: 4, base: 4, incompatible: ["Защита","Огнестойкость","Защита от снарядов"] },
+  "Защита от снарядов":   { maxLevel: 4, base: 4, incompatible: ["Защита","Огнестойкость","Взрывоустойчивость"] },
 });
+
+const THORNS: Record<string, EnchantDef> = { "Шипы": { maxLevel: 3, base: 5 } };
 
 const ENCHANTS: Record<string, Record<string, EnchantDef>> = {
   // ── ОРУЖИЕ ──────────────────────────────────────────────────────────────────
   "Меч": {
-    "Острота":              { maxLevel: 5, base: 5, incompatible: ["Иссушение","Урон по нежити"] },
-    "Иссушение":            { maxLevel: 5, base: 5, incompatible: ["Острота","Урон по нежити"] },
-    "Урон по нежити":       { maxLevel: 5, base: 5, incompatible: ["Острота","Иссушение"] },
+    "Острота":              { maxLevel: 5, base: 5, incompatible: ["Небесная кара"] },
+    "Небесная кара":        { maxLevel: 5, base: 5, incompatible: ["Острота"] },
     "Отбрасывание":         { maxLevel: 2, base: 4 },
-    "Огненный аспект":      { maxLevel: 2, base: 6 },
+    "Облик огня":           { maxLevel: 2, base: 6 },
     "Добыча":               { maxLevel: 3, base: 6 },
-    "Заметание":            { maxLevel: 3, base: 5 },
-    ...UNB, ...MEND, ...CURSE_V,
+    "Разящий клинок":       { maxLevel: 3, base: 5 },
+    ...UNB, ...MEND,
   },
   "Топор": {
-    "Острота":              { maxLevel: 5, base: 5, incompatible: ["Иссушение","Урон по нежити"] },
-    "Иссушение":            { maxLevel: 5, base: 5, incompatible: ["Острота","Урон по нежити"] },
-    "Урон по нежити":       { maxLevel: 5, base: 5, incompatible: ["Острота","Иссушение"] },
+    "Острота":              { maxLevel: 5, base: 5, incompatible: ["Небесная кара"] },
+    "Небесная кара":        { maxLevel: 5, base: 5, incompatible: ["Острота"] },
     "Эффективность":        { maxLevel: 5, base: 4 },
     "Удача":                { maxLevel: 3, base: 7, incompatible: ["Шёлковое касание"] },
     "Шёлковое касание":     { maxLevel: 1, base: 8, incompatible: ["Удача"] },
-    ...THORNS, ...UNB, ...MEND, ...CURSE_V,
+    ...UNB, ...MEND,
   },
   "Трезубец": {
-    "Преданность":          { maxLevel: 5, base: 5, incompatible: ["Каналирование","Разрыв"] },
-    "Разрыв":               { maxLevel: 3, base: 5, incompatible: ["Преданность","Каналирование"] },
-    "Каналирование":        { maxLevel: 1, base: 8, incompatible: ["Преданность","Разрыв"] },
-    "Водный бой":           { maxLevel: 3, base: 5 },
-    "Импульс":              { maxLevel: 1, base: 7 },
-    ...UNB, ...MEND, ...CURSE_V,
+    "Верность":             { maxLevel: 3, base: 5, incompatible: ["Тягун"] },
+    "Тягун":                { maxLevel: 3, base: 5, incompatible: ["Верность"] },
+    ...UNB, ...MEND,
+  },
+  "Копьё": {
+    "Острота":              { maxLevel: 5, base: 5, incompatible: ["Небесная кара"] },
+    "Небесная кара":        { maxLevel: 5, base: 5, incompatible: ["Острота"] },
+    "Отбрасывание":         { maxLevel: 2, base: 4 },
+    ...UNB, ...MEND,
+  },
+  "Булава": {
+    "Острота":              { maxLevel: 5, base: 5, incompatible: ["Небесная кара"] },
+    "Небесная кара":        { maxLevel: 5, base: 5, incompatible: ["Острота"] },
+    "Облик огня":           { maxLevel: 2, base: 6 },
+    "Отбрасывание":         { maxLevel: 2, base: 4 },
+    "Добыча":               { maxLevel: 3, base: 6 },
+    ...UNB, ...MEND,
   },
   // ── ИНСТРУМЕНТЫ ─────────────────────────────────────────────────────────────
   "Кирка": {
     "Эффективность":        { maxLevel: 5, base: 4 },
     "Удача":                { maxLevel: 3, base: 7, incompatible: ["Шёлковое касание"] },
     "Шёлковое касание":     { maxLevel: 1, base: 8, incompatible: ["Удача"] },
-    ...UNB, ...MEND, ...CURSE_V,
+    ...UNB, ...MEND,
   },
   "Лопата": {
     "Эффективность":        { maxLevel: 5, base: 4 },
     "Удача":                { maxLevel: 3, base: 7, incompatible: ["Шёлковое касание"] },
     "Шёлковое касание":     { maxLevel: 1, base: 8, incompatible: ["Удача"] },
-    ...UNB, ...MEND, ...CURSE_V,
+    ...UNB, ...MEND,
   },
   "Мотыга": {
     "Эффективность":        { maxLevel: 5, base: 4 },
     "Удача":                { maxLevel: 3, base: 7, incompatible: ["Шёлковое касание"] },
     "Шёлковое касание":     { maxLevel: 1, base: 8, incompatible: ["Удача"] },
-    ...UNB, ...MEND, ...CURSE_V,
+    ...UNB, ...MEND,
   },
   "Ножницы": {
     "Эффективность":        { maxLevel: 5, base: 4 },
     "Удача":                { maxLevel: 3, base: 7, incompatible: ["Шёлковое касание"] },
     "Шёлковое касание":     { maxLevel: 1, base: 8, incompatible: ["Удача"] },
-    ...UNB, ...MEND, ...CURSE_V,
+    ...UNB, ...MEND,
   },
   "Удочка": {
-    "Удача моря":           { maxLevel: 3, base: 6, incompatible: ["Наживка"] },
-    "Наживка":              { maxLevel: 3, base: 6, incompatible: ["Удача моря"] },
-    ...UNB, ...MEND, ...CURSE_V,
+    "Приманка":             { maxLevel: 3, base: 6, incompatible: ["Везучий рыбак"] },
+    "Везучий рыбак":        { maxLevel: 3, base: 6, incompatible: ["Приманка"] },
+    ...UNB, ...MEND,
   },
   // ── ДАЛЬНОБОЙНОЕ ────────────────────────────────────────────────────────────
   "Лук": {
     "Сила":                 { maxLevel: 5, base: 4 },
-    "Отдача":               { maxLevel: 2, base: 5 },
-    "Пламя":                { maxLevel: 1, base: 6 },
+    "Откидывание":          { maxLevel: 2, base: 5 },
+    "Воспламенение":        { maxLevel: 1, base: 6 },
     "Бесконечность":        { maxLevel: 1, base: 10, incompatible: ["Починка"] },
     ...UNB,
     "Починка":              { maxLevel: 1, base: 10, incompatible: ["Бесконечность"] },
-    ...CURSE_V,
   },
   "Арбалет": {
-    "Быстрый заряд":        { maxLevel: 3, base: 5 },
-    "Многозарядность":      { maxLevel: 1, base: 8, incompatible: ["Пронзание"] },
-    "Пронзание":            { maxLevel: 4, base: 5, incompatible: ["Многозарядность"] },
-    ...UNB, ...MEND, ...CURSE_V,
+    "Быстрая перезарядка":  { maxLevel: 3, base: 5 },
+    "Тройной выстрел":      { maxLevel: 1, base: 8, incompatible: ["Пронзающая стрела"] },
+    "Пронзающая стрела":    { maxLevel: 4, base: 5, incompatible: ["Тройной выстрел"] },
+    ...UNB, ...MEND,
   },
   // ── БРОНЯ ───────────────────────────────────────────────────────────────────
   "Шлем": {
     ...mkProt(),
-    "Дыхание":              { maxLevel: 3, base: 6 },
-    "Родство с водой":      { maxLevel: 1, base: 6 },
-    ...THORNS, ...UNB, ...MEND, ...CURSE_V, ...CURSE_B,
+    "Подводное дыхание":    { maxLevel: 3, base: 6 },
+    "Подводник":            { maxLevel: 1, base: 6 },
+    ...THORNS, ...UNB, ...MEND,
   },
   "Нагрудник": {
     ...mkProt(),
-    ...THORNS, ...UNB, ...MEND, ...CURSE_V, ...CURSE_B,
+    ...THORNS, ...UNB, ...MEND,
   },
   "Поножи": {
     ...mkProt(),
-    "Быстрые ноги":         { maxLevel: 3, base: 4 },
-    ...THORNS, ...UNB, ...MEND, ...CURSE_V, ...CURSE_B,
+    "Проворство":           { maxLevel: 3, base: 4 },
+    ...THORNS, ...UNB, ...MEND,
   },
   "Ботинки": {
     ...mkProt(),
-    "Хождение по воде":     { maxLevel: 3, base: 5 },
-    "Мягкое падение":       { maxLevel: 4, base: 4 },
-    "Ледяная поступь":      { maxLevel: 2, base: 4 },
-    "Скороход":             { maxLevel: 3, base: 4 },
-    ...THORNS, ...UNB, ...MEND, ...CURSE_V, ...CURSE_B,
+    "Подводная ходьба":     { maxLevel: 3, base: 5 },
+    "Невесомость":          { maxLevel: 4, base: 4 },
+    "Ледоход":              { maxLevel: 2, base: 4 },
+    "Скорость души":        { maxLevel: 3, base: 4 },
+    ...THORNS, ...UNB, ...MEND,
   },
   // ── ДРУГОЕ ──────────────────────────────────────────────────────────────────
-  "Эйтра": {
+  "Элитры": {
     ...UNB, ...MEND,
-    "Проклятие несохранения": { maxLevel: 1, base: 2 },
-    "Проклятие исчезновения": { maxLevel: 1, base: 2 },
   },
   "Щит": {
     ...UNB, ...MEND,
-    "Проклятие несохранения": { maxLevel: 1, base: 2 },
   },
 };
 
 // Группировка предметов для удобного UI
 const ITEM_GROUPS: { label: string; items: string[] }[] = [
-  { label: "Оружие",       items: ["Меч", "Топор", "Трезубец"] },
+  { label: "Оружие",       items: ["Меч", "Топор", "Трезубец", "Копьё", "Булава"] },
   { label: "Инструменты",  items: ["Кирка", "Лопата", "Мотыга", "Ножницы", "Удочка"] },
   { label: "Дальнобой",    items: ["Лук", "Арбалет"] },
   { label: "Броня",        items: ["Шлем", "Нагрудник", "Поножи", "Ботинки"] },
-  { label: "Другое",       items: ["Эйтра", "Щит"] },
+  { label: "Другое",       items: ["Элитры", "Щит"] },
 ];
 
 const ITEM_ICONS: Record<string, string> = {
-  Меч: "⚔️", Топор: "🪓", Трезубец: "🔱",
+  Меч: "⚔️", Топор: "🪓", Трезубец: "🔱", "Копьё": "🗡️", Булава: "🏏",
   Кирка: "⛏️", Лопата: "🪣", Мотыга: "🌾", Ножницы: "✂️", Удочка: "🎣",
   Лук: "🏹", Арбалет: "🎯",
   Шлем: "🪖", Нагрудник: "🛡️", Поножи: "🩲", Ботинки: "👟",
-  Эйтра: "🪂", Щит: "🔰",
+  Элитры: "🪂", Щит: "🔰",
 };
 
 const ROMAN = ["", "I", "II", "III", "IV", "V"];
