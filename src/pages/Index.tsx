@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
 
-const NAV_LINKS = ["Главная", "Инструменты", "Гайды", "Контакты"];
+const NAV_LINKS = ["Главная", "Инструменты", "Гайды"];
 
 // ─── XP Calculator ────────────────────────────────────────────────────────────
 function xpForLevel(level: number): number {
@@ -854,45 +854,6 @@ export default function Index() {
               </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* CONTACTS */}
-      <section id="contacts" className="py-24 px-6 max-w-2xl mx-auto">
-        <div className="text-center mb-16">
-          <p className="text-[#f59e0b] text-xs tracking-[0.4em] uppercase mb-3">Раздел</p>
-          <h2 className="font-['Oswald',sans-serif] text-4xl md:text-5xl font-bold uppercase tracking-wider text-white">Контакты</h2>
-          <div className="mt-4 w-16 h-0.5 bg-[#f59e0b] mx-auto" />
-          <p className="mt-6 text-[#f0e8d8]/50 text-sm">Присоединяйся к сообществу или напиши нам</p>
-        </div>
-
-        <a href="https://t.me/+diThugKNH0o4ZTIy" target="_blank" rel="noopener noreferrer"
-          className="flex items-center gap-4 p-6 bg-[#1a1510] border border-[#f59e0b]/10 rounded-lg mb-6 transition-all duration-300 hover:border-[#229ed9]/50 hover:bg-[#1a1f25] group">
-          <div className="w-12 h-12 bg-[#229ed9]/10 border border-[#229ed9]/30 rounded-full flex items-center justify-center flex-shrink-0 group-hover:bg-[#229ed9]/20 transition-colors">
-            <span className="text-2xl">✈️</span>
-          </div>
-          <div className="flex-1">
-            <p className="font-semibold text-white mb-0.5 group-hover:text-[#229ed9] transition-colors">Telegram-канал MineKit</p>
-            <p className="text-sm text-[#f0e8d8]/40">Обновления, советы и общение с игроками</p>
-          </div>
-          <Icon name="ArrowRight" size={18} className="text-[#f0e8d8]/20 group-hover:text-[#229ed9] transition-colors" />
-        </a>
-
-        <div className="bg-[#1a1510] border border-[#f59e0b]/10 rounded-lg p-6">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-8 h-8 bg-[#f59e0b]/10 border border-[#f59e0b]/20 rounded flex items-center justify-center">
-              <Icon name="Lightbulb" size={15} className="text-[#f59e0b]" />
-            </div>
-            <p className="font-semibold text-white text-sm">Есть идеи?</p>
-          </div>
-          <p className="text-sm text-[#f0e8d8]/50 leading-relaxed mb-4">
-            Пиши идеи для новых калькуляторов и гайдов — добавляем инструменты по запросам игроков.
-          </p>
-          <a href="https://t.me/+diThugKNH0o4ZTIy" target="_blank" rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#f59e0b] text-black font-bold text-xs tracking-widest uppercase rounded transition-all duration-300 hover:bg-[#fbbf24] hover:shadow-[0_0_20px_rgba(245,158,11,0.4)]">
-            <span>Написать в Telegram</span>
-            <Icon name="ArrowRight" size={14} />
-          </a>
         </div>
       </section>
 
